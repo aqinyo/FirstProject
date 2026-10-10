@@ -14,7 +14,7 @@ namespace FirstProject.Model.Entity
         public string Account { get; set; } = string.Empty;// 非空
 
         [Required]
-        public string Passname { get; set; } = string.Empty;// 非空
+        public string Password { get; set; } = string.Empty;// 非空
 
         [Required]
         public string Role { get; set; } = "User";// 默认用户，管理员为Admin
