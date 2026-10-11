@@ -2,15 +2,17 @@
 using FirstProject.Model.VO;
 using FirstProject.Result;
 using FirstProject.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FirstProject.Controller
 {
     /// <summary>
-    /// 用户管理接口
+    /// 用户管理相关接口
     /// </summary>
     [ApiController]
-    [Route("api/[users]")] //请求前缀
+    [Authorize(Roles = "Admin")]    // 只有Admin角色的用户才能访问该接口，与Java需要自定义拦截器+注册拦截器的权限校验不同，C#直接在Controller层加上Authorize特性即可，Authorize特性是ASP.NET Core自带的权限校验特性，更加简洁方便
+    [Route("api/users")]          // 请求前缀
     public class UserController : ControllerBase
     {
 
@@ -35,7 +37,7 @@ namespace FirstProject.Controller
         /// <summary>
         /// 分页查询用户列表
         /// </summary>
-        [HttpGet]
+        [HttpGet("GetUserPageList")]   // 细节：这个路由等价于"[HttpGet]+[Route("GetUserPageList")]"的路由写法（这与Java有不一样的）
         public async Task<Result<PageResult<UserVo>>> GetUserPageList([FromQuery] PageQueryDto pageQueryDto)
         {
             var pageResult = await m_userService.GetUserPageList(pageQueryDto);
@@ -46,8 +48,7 @@ namespace FirstProject.Controller
         /// <summary>
         /// 新增用户
         /// </summary>
-        [HttpPost]
-        [Route("AddUser")]
+        [HttpPost("AddUser")]
         public async Task<Result<string>> AddUser([FromBody] UserDto dto)   //async修饰符表示示这个方法内部会使用 await 等待异步操作
         {
             await m_userService.AddUser(dto);                // 用到await，是指在调用Service层的 AddUser 方法时，程序会等待该方法执行完成后再继续执行后续代码
@@ -58,7 +59,7 @@ namespace FirstProject.Controller
         /// <summary>
         /// 修改用户（先查后改）
         /// </summary>
-        [HttpPut]
+        [HttpPut("UpdateUser")]
         public async Task<Result<string>> UpdateUser([FromBody] UserDto dto)
         {
             await m_userService.UpdateUser(dto);
@@ -69,7 +70,7 @@ namespace FirstProject.Controller
         /// <summary>
         /// 删除用户（根据ID）
         /// </summary>
-        [HttpDelete]
+        [HttpDelete("DeleteUser")]
         public async Task<Result<string>> DeleteUser([FromQuery] int id)
         {
             await m_userService.DeleteUser(id);
@@ -80,8 +81,7 @@ namespace FirstProject.Controller
         /// <summary>
         /// 启用禁用账号状态
         /// </summary>
-        [HttpPost]
-        [Route("enableOrDisableAccountStatus")] //加上路由匹配，是因为避免和“新增用户”的路由冲突,Post请求有两个，所以我都加了路由来区分（其他的只有一个，所以不需要加路由）
+        [HttpPost("enableOrDisableAccountStatus")] //加上路由匹配，是因为避免和“新增用户”的路由冲突,Post请求有两个，所以我都加了路由来区分（其他的也加吧，符合C#接口规范，而且也不影响文档生成注释）
         public async Task<Result<string>> EnableOrDisableAccountStatus([FromQuery] int id)
         {
             await m_userService.EnableOrDisableAccountStatus(id);

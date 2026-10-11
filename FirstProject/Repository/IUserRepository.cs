@@ -1,17 +1,25 @@
-﻿/****************************
+﻿/*
  Repository层接口是提供给Service层调用的，Service层接口是提供给Controller层调用的，Controller层接口是提供给前端调用的
- ****************************/
+*/
 
 using FirstProject.Model.Dto;
 using FirstProject.Model.Entity;
 using FirstProject.Result;
 
-namespace FirstProject.Repository   //注：Repository层的接口方法和Service层的接口方法基本一致，只是Repository层的方法参数类型是实体类，而Service层的方法参数类型是DTO类
-{
+namespace FirstProject.Repository
+{ /* 注：Repository层 的接口方法和 Service层 的接口方法基本一致
+        只是 Repository层 方法返回的参数类型基本是 实体类，
+        而 Service层 的方法返回的参数类型是 VO 类，
+        （ Controller层 的方法返回的参数类型，则是统一封装的响应体 Result 类，携带着Service层返回的VO类数据 ）
+  */
     public interface IUserRepository
     {
         // 注册
         Task Register(User user);
+
+
+        // 登录（根据账号查询用户信息）
+        Task<User?> Login(string account);
 
 
         // 查重（根据账号）

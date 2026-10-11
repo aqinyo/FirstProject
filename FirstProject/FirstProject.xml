@@ -1,0 +1,260 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>FirstProject</name>
+    </assembly>
+    <members>
+        <member name="T:FirstProject.Controller.AuthController">
+            <summary>
+            用户认证接口
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.AuthController.Login(FirstProject.Model.Dto.LoginDto)">
+            <summary>
+            用户登录
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.AuthController.Register(FirstProject.Model.Dto.RegisterDto)">
+            <summary>
+            注册
+            </summary>
+        </member>
+        <member name="T:FirstProject.Controller.UserController">
+            <summary>
+            用户管理接口
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.UserController.GetUserById(System.Int32)">
+            <summary>
+            根据ID查询单个用户
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.UserController.GetUserPageList(FirstProject.Model.Dto.PageQueryDto)">
+            <summary>
+            分页查询用户列表
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.UserController.AddUser(FirstProject.Model.Dto.UserDto)">
+            <summary>
+            新增用户
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.UserController.UpdateUser(FirstProject.Model.Dto.UserDto)">
+            <summary>
+            修改用户（先查后改）
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.UserController.DeleteUser(System.Int32)">
+            <summary>
+            删除用户（根据ID）
+            </summary>
+        </member>
+        <member name="M:FirstProject.Controller.UserController.EnableOrDisableAccountStatus(System.Int32)">
+            <summary>
+            启用禁用账号状态
+            </summary>
+        </member>
+        <member name="T:FirstProject.Model.Dto.LoginDto">
+            <summary>
+            登录入参
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.LoginDto.Account">
+            <summary>
+            账号
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.LoginDto.Password">
+            <summary>
+            密码
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.PageQueryDto.Page">
+            <summary>
+            当前页码
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.PageQueryDto.PageSize">
+            <summary>
+            每页记录数
+            </summary>
+        </member>
+        <member name="T:FirstProject.Model.Dto.RegisterDto">
+            <summary>
+            注册入参
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.RegisterDto.Name">
+            <summary>
+            用户名
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.RegisterDto.Account">
+            <summary>
+            账号
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.RegisterDto.Password">
+            <summary>
+            密码
+            </summary>
+        </member>
+        <member name="T:FirstProject.Model.Dto.UserDto">
+            <summary>
+            用户信息入参（面向admin，主要是修改用户的时候接收的参数）
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.UserDto.Name">
+            <summary>
+            名称
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.UserDto.Account">
+            <summary>
+            账号
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.UserDto.Password">
+            <summary>
+            密码
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.UserDto.Role">
+            <summary>
+            角色
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.Dto.UserDto.Status">
+            <summary>
+            账号状态
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.VO.LoginVo.AccessToken">
+            <summary>
+            JWT Token
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.VO.LoginVo.ExpiresAt">
+            <summary>
+            JWT Token 的过期时间
+            </summary>
+        </member>
+        <member name="P:FirstProject.Model.VO.LoginVo.User">
+            <summary>
+            登录成功后返回的用户信息，前端可以根据这个信息来显示用户的基本信息
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.Register(FirstProject.Model.Entity.User)">
+            <summary>
+            注册
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.Login(System.String)">
+            <summary>
+            登录（根据账号查询用户信息）
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.CheckAccountExists(System.String)">
+            <summary>
+            查重（根据账号）
+            </summary>
+            <param name="account"></param>
+            <returns></returns>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.GetUserById(System.Int32)">
+            <summary>
+            根据ID查询单个用户
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.GetUserPageList(FirstProject.Model.Dto.PageQueryDto)">
+            <summary>
+            分页查询用户列表
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.AddUser(FirstProject.Model.Entity.User)">
+            <summary>
+            新增用户
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.UpdateUser(FirstProject.Model.Entity.User)">
+            <summary>
+            修改用户
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.DeleteUser(System.Int32)">
+            <summary>
+            删除用户（根据ID）
+            </summary>
+        </member>
+        <member name="M:FirstProject.Repository.UserRepository.EnableOrDisableAccountStatus(System.Int32)">
+            <summary>
+            启用禁用账号
+            </summary>
+        </member>
+        <member name="T:FirstProject.Result.Result`1">
+            <summary>
+            全局统一返回结果，统一响应体    （类似Java的Result）
+            </summary>
+        </member>
+        <member name="P:FirstProject.Result.Result`1.Code">
+            <summary>
+            业务码：200成功，500业务异常
+            </summary>
+        </member>
+        <member name="P:FirstProject.Result.Result`1.Msg">
+            <summary>
+            提示信息
+            </summary>
+        </member>
+        <member name="P:FirstProject.Result.Result`1.Data">
+            <summary>
+            返回数据（可空）
+            </summary>
+        </member>
+        <member name="T:FirstProject.Service.UserService">
+            <summary>
+            用户管理实现类
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.Login(FirstProject.Model.Dto.LoginDto)">
+            <summary>
+            登录
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.Register(FirstProject.Model.Dto.RegisterDto)">
+            <summary>
+            注册
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.GetUserById(System.Int32)">
+            <summary>
+            根据ID查询单个用户
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.GetUserPageList(FirstProject.Model.Dto.PageQueryDto)">
+            <summary>
+            分页查询用户列表
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.AddUser(FirstProject.Model.Dto.UserDto)">
+            <summary>
+             新增用户
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.UpdateUser(FirstProject.Model.Dto.UserDto)">
+            <summary>
+            修改用户（先查后改）
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.DeleteUser(System.Int32)">
+            <summary>
+            删除用户（根据ID）
+            </summary>
+        </member>
+        <member name="M:FirstProject.Service.UserService.EnableOrDisableAccountStatus(System.Int32)">
+            <summary>
+            启用禁用账号状态
+            </summary>
+        </member>
+    </members>
+</doc>

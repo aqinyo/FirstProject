@@ -3,6 +3,7 @@ using FirstProject.Model.Entity;
 using FirstProject.Model.VO;
 using FirstProject.Repository;
 using FirstProject.Result;
+using FirstProject.Utils.Auth;  
 using Mapster;                      // 引入Mapster命名空间，作用是将DTO类和实体类之间进行映射，类似于Java中的BeanUtils.copyProperties()对象属性拷贝方法
 namespace FirstProject.Service
 {
@@ -13,18 +14,46 @@ namespace FirstProject.Service
     {
 
         private readonly IUserRepository _userRepository;   // 依赖注入 Repository层 的接口
-        public UserService(IUserRepository userRepository)  // 构造函数注入 Repository层 的接口
+        private readonly JwtToken _jwtToken;                // 依赖注入自定义的 JwtToken 工具类，用于生成JWT令牌
+        public UserService(IUserRepository userRepository, JwtToken jwtToken)  // 构造函数注入 Repository层 的接口 和 自定义的 JwtToken 工具类的实例
         {
             _userRepository = userRepository;
+            _jwtToken = jwtToken;
         }
 
 
         /// <summary>
         /// 登录
         /// </summary>
-        public Task<string> Login(LoginDto loginDto)
+        public async Task<LoginVo> Login(LoginDto loginDto)
         {
-            
+                                                // 直接从 DTO中 取出Repository层 Login 方法要的入参参数“loginDto.Account”即可
+            var user = await _userRepository.Login(loginDto.Account);  // 调用 Repository 层的 Login 方法，根据账号查询用户信息，返回的数据类型是 User 实体类对象，如果没有找到则返回 null
+
+            if (user is null)
+            {
+                throw new Exception("账号或密码错误！");
+            }
+
+            if (user.Status != AccountStatus.Enabled)
+            {
+                throw new Exception("该账号已被禁用！");    
+            }
+
+            // 当前注册逻辑尚未加密密码，因此这里只能明文比较。
+            // 完成密码加密后，应改为比较加密后的密码。
+            if (user.Password != loginDto.Password)
+            {
+                throw new Exception("账号或密码错误！");
+            }
+
+            var expiresAt = DateTime.UtcNow.AddHours(1);
+            return new LoginVo
+            {
+                AccessToken = _jwtToken.CreateToken(user),
+                ExpiresAt = expiresAt,
+                User = user.Adapt<UserVo>()
+            };
         }
 
 
@@ -45,8 +74,8 @@ namespace FirstProject.Service
             // SM4加密密码操作（非手动赋值部分）【写好SMD的类和方法后再改】
             //userRegister.Password = HashPassword(dto.Password);
             // 手动赋值
-            userRegister.Role = "User";                 // 默认注册的用户角色为普通用户
-            userRegister.Status = 1;                    // 默认注册的用户状态为启用
+            userRegister.Role = "User";                   // 默认注册的用户角色为普通用户
+            userRegister.Status = AccountStatus.Enabled;  // 默认注册的用户状态为启用
             userRegister.CreateTime = DateTime.Now;
 
             await _userRepository.Register(userRegister);
@@ -71,16 +100,8 @@ namespace FirstProject.Service
             // 1. 调用 Repository 获取 Entity 分页数据
             var userPage = await _userRepository.GetUserPageList(pageQueryDto); // 数据层返回的是 PageResult<User> 类型
 
-            // 2. 将 Entity 映射为 Vo 类型（使用 LINQ 的 Select 手动映射，mapper的有点麻烦）【密码字段不+】
-            var voList = userPage.Data?.Select(u => new UserVo
-            {
-                Id = u.Id,
-                Name = u.Name,
-                Account = u.Account,
-                Role = u.Role,
-                Status = u.Status,
-                CreateTime = u.CreateTime
-            }).ToList();
+            // 2. 将 Entity 映射为 Vo 类型
+            var voList = userPage.Data?.Adapt<List<UserVo>>();
 
             // 3. 返回新的 PageResult<UserVo> 给Controller层
             return new PageResult<UserVo>
@@ -94,14 +115,14 @@ namespace FirstProject.Service
 
 
         /// <summary>
-        ///  新增用户（管理员新增）
+        ///  新增用户
         /// </summary>
         public async Task AddUser(UserDto dto)
         {
             //对象属性拷贝，将UserDto对象转换为User实体对象，实体类有但 dto 里没有的字段没有的属性下面再手动赋值
             var user = dto.Adapt<User>();
             // SM4加密密码操作（非手动赋值部分）【写好SMD的类和方法后再改】
-            user.Password = HashPassword(dto.Password); 
+            //user.Password = HashPassword(dto.Password); 
             // 手动赋值
             user.CreateTime = DateTime.Now;
 
