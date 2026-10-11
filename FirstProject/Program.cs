@@ -5,6 +5,7 @@ using FirstProject.Data;
 using FirstProject.Repository;
 using FirstProject.Service;
 using FirstProject.Utils.Auth;
+using FirstProject.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;           // 引入 Entity Framework Core 的命名空间，作用是将 C# 对象映射到数据库表，并提供 LINQ 查询功能，简化数据库操作，类似于 Java 的 MyBatis
 using Microsoft.IdentityModel.Tokens;
@@ -37,6 +38,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();  // 也得
 builder.Services.AddScoped<IUserService, UserService>();
 // 注册 JwtToken
 builder.Services.AddScoped<JwtToken>();
+// 注册 Sm4 加密工具类
+builder.Services.AddSingleton<Sm4>();
 
 // 配置 JWT 验证参数
 var jwt = builder.Configuration.GetSection("Jwt");

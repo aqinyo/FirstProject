@@ -13,7 +13,7 @@ public class LoginVo
     /// <summary>
     /// JWT Token 的过期时间
     /// </summary>
-    public DateTime ExpiresAt { get; set; }
+    public DateTime TokenOutTime { get; set; }
 
     /// <summary>
     /// 登录成功后返回的用户信息，前端可以根据这个信息来显示用户的基本信息

@@ -4,6 +4,7 @@ using FirstProject.Model.VO;
 using FirstProject.Repository;
 using FirstProject.Result;
 using FirstProject.Utils.Auth;  
+using FirstProject.Utils;
 using Mapster;                      // 引入Mapster命名空间，作用是将DTO类和实体类之间进行映射，类似于Java中的BeanUtils.copyProperties()对象属性拷贝方法
 namespace FirstProject.Service
 {
@@ -15,10 +16,12 @@ namespace FirstProject.Service
 
         private readonly IUserRepository _userRepository;   // 依赖注入 Repository层 的接口
         private readonly JwtToken _jwtToken;                // 依赖注入自定义的 JwtToken 工具类，用于生成JWT令牌
-        public UserService(IUserRepository userRepository, JwtToken jwtToken)  // 构造函数注入 Repository层 的接口 和 自定义的 JwtToken 工具类的实例
+        private readonly Sm4 _sm4;                          // 依赖注入自定义的 Sm4 工具类，用于密码加密和解密
+        public UserService(IUserRepository userRepository, JwtToken jwtToken, Sm4 sm4)  // 构造函数：依赖注入“上述所依赖注入的东西”进入容器 ，并负责创建并传入这些对象
         {
             _userRepository = userRepository;
             _jwtToken = jwtToken;
+            _sm4 = sm4;
         }
 
 
@@ -40,20 +43,20 @@ namespace FirstProject.Service
                 throw new Exception("该账号已被禁用！");    
             }
 
-            // 当前注册逻辑尚未加密密码，因此这里只能明文比较。
-            // 完成密码加密后，应改为比较加密后的密码。
-            if (user.Password != loginDto.Password)
+            if (!_sm4.Verify(loginDto.Password, user.Password)) //调用自定义的 Sm4 工具类的 Verify 方法，验证用户输入的密码是否与数据库中存储的加密密码匹配
             {
                 throw new Exception("账号或密码错误！");
             }
 
-            var expiresAt = DateTime.UtcNow.AddHours(1);
-            return new LoginVo
+            var TokenOutTime = DateTime.UtcNow.AddHours(1);     // 设置JWT令牌的过期时间为1小时后
+
+            var loginVo = new LoginVo
             {
-                AccessToken = _jwtToken.CreateToken(user),
-                ExpiresAt = expiresAt,
-                User = user.Adapt<UserVo>()
+                AccessToken = _jwtToken.CreateToken(user),     // 调用自定义的 JwtToken 工具类的 CreateToken 方法生成 JWT Token，赋值给 LoginVo 的 AccessToken 属性
+                TokenOutTime = TokenOutTime,                   // 设置JWT令牌的过期时间
+                User = user.Adapt<UserVo>()                    // 将 User 实体对象映射为 UserVo 对象返回（因为密码要屏蔽掉）
             };
+            return loginVo;
         }
 
 
@@ -71,11 +74,10 @@ namespace FirstProject.Service
 
             // 对象属性拷贝
             var userRegister = registerDto.Adapt<User>();
-            // SM4加密密码操作（非手动赋值部分）【写好SMD的类和方法后再改】
-            //userRegister.Password = HashPassword(dto.Password);
             // 手动赋值
-            userRegister.Role = "User";                   // 默认注册的用户角色为普通用户
-            userRegister.Status = AccountStatus.Enabled;  // 默认注册的用户状态为启用
+            userRegister.Password = _sm4.Encrypt(registerDto.Password); // 调用自定义的 Sm4 工具类的 Encrypt(加密)方法对用户输入的密码进行加密，并赋值给 User 实体对象的 Password 属性
+            userRegister.Role = "User";                                 // 默认注册的用户角色为普通用户
+            userRegister.Status = AccountStatus.Enabled;                // 默认注册的用户状态为启用
             userRegister.CreateTime = DateTime.Now;
 
             await _userRepository.Register(userRegister);
@@ -121,9 +123,11 @@ namespace FirstProject.Service
         {
             //对象属性拷贝，将UserDto对象转换为User实体对象，实体类有但 dto 里没有的字段没有的属性下面再手动赋值
             var user = dto.Adapt<User>();
-            // SM4加密密码操作（非手动赋值部分）【写好SMD的类和方法后再改】
-            //user.Password = HashPassword(dto.Password); 
             // 手动赋值
+            if (!string.IsNullOrEmpty(dto.Password))// 密码赋值前先判断是否Null
+            {
+                user.Password = _sm4.Encrypt(dto.Password);//加密赋值
+            }
             user.CreateTime = DateTime.Now;
 
             await _userRepository.AddUser(user);
