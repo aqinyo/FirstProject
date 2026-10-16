@@ -1,150 +1,273 @@
-﻿/*
- C# 开发的Repository层与Java的 MyBatis 不太一样，Java 的 MyBatis 是写 SQL 语句的，而 C# 开发的 Repository 层是写 C# 对象操作的（LINQ 表达式），EF Core 会帮你把 C# 对象操作翻译成 SQL 语句去执行
-*/
-
-using FirstProject.Data;
+﻿using FirstProject.Data;
 using FirstProject.Model.Dto;
 using FirstProject.Model.Entity;
 using FirstProject.Result;
-using Microsoft.EntityFrameworkCore;
-using static FirstProject.Model.Dto.UserDto;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FirstProject.Repository
 {
-    public class UserRepository : IUserRepository
+    /// <summary>
+    /// DL层操作数据库
+    /// </summary>
+    public class UserRepository
     {
-           
-        private readonly AppDbContext _context;     // 依赖注入的数据库上下文对象，用于操作数据库的 （readonly ：只能在构造函数里面赋值一次）
-        public UserRepository(AppDbContext context) // 构造函数注入 AppDbContext
+
+        private readonly AppDbContext m_context;             // 依赖注入的数据库上下文对象，用于操作数据库的 （readonly ：只能在构造函数里面赋值一次）
+        /// <summary>
+        /// 构造函数：依赖注入“上述所依赖注入的东西”进入容器 ，并负责创建并传入这些对象
+        /// </summary>
+        /// <param name="context"></param>
+        public UserRepository(AppDbContext context)
         {
-            _context = context;
+            //表示把 context 赋给 m_context （_是一种常见的 C# 命名约定，用来标记私有字段）（公司规范：私有字段 + m_  全局变量+ g_ ）（全局替换可以，一开始右键字段名→重命名）
+            m_context = context;  
         }
-        /*
-         DbContext提供的常用方法：（所以Repository层的实现类用EFcore提供的方法去实现Repository层的接口方法，然后Service层的实现类去依赖注入Repository层的接口）
-            .FindAsync(id)：             按主键查
-            .FirstOrDefaultAsync(条件)： 查第一条
-            .Where(条件)：               过滤
-            .AddAsync(entity)：          新增
-            .Remove(entity)：            删除
-            .ToListAsync()：             转成列表
-         */
 
 
 
         /// <summary>
-        /// 注册
+        /// 登录（返回值类型带?，可能为空，即账号可能不存在）
         /// </summary>
-        public async Task Register(User user)
-        {
-            // 将实体添加到 EF Core 的变更追踪器中（此时还未真正写入数据库）
-            await _context.User.AddAsync(user);
-
-            // 提交更改，EF Core 此时会生成 INSERT SQL 语句并执行
-            await _context.SaveChangesAsync();
-        }
-
-
-        /// <summary>
-        /// 登录（根据账号查询用户信息）
-        /// </summary>
-        public async Task<User?> Login(string account)
-        {
-            return await _context.User.FirstOrDefaultAsync(u => u.Account == account); //根据账号查询用户信息，返回一个 User 对象，如果没有找到则返回 null
-        }
-
-
-        /// <summary>
-        /// 查重（根据账号）
-        /// </summary>
-        /// <param name="account"></param>
         /// <returns></returns>
-        public async Task<bool> CheckAccountExists(string account)
+        public User? Login(LoginDto loginDto)
         {
-            return await _context.User.AnyAsync(u => u.Account == account);    // 与"根据ID查询单个用户"的方法不同，这里是查重，所以用 AnyAsync() 方法来进行判断，它会返回一个布尔值，表示是否存在满足条件的记录
+            User? user = m_context.User.FirstOrDefault(u => u.Account == loginDto.Account);   // 查询数据库校验账号
+            return user;                                                                      // 直接返回实体类即可，Service层再做业务逻辑的检验
+        }
+
+
+
+        /// <summary>
+        /// 检查账号是否已存在
+        /// </summary>
+        /// <param name="account">账号</param>
+        /// <returns>返回类型采用bool，账号已存在返回 true，否则返回 false</returns>
+        public bool AccountExists(string account)
+        {
+            m_context.User.Any(u => u.Account == account);
+
+            var rowsAffected = m_context.SaveChanges();
+            return rowsAffected > 0;
+        }
+
+
+
+        /// <summary>
+        /// 注册用户并保存到数据库
+        /// </summary>
+        /// <param name="user">待注册的用户实体</param>
+        public bool Register(User user)
+        {
+            m_context.User.Add(user);
+
+            // 原本是void 的，脚本都换成bool类型，要来验证的
+            var rowsAffected = m_context.SaveChanges();
+            return rowsAffected > 0;
         }
 
 
         /// <summary>
-        /// 根据ID查询单个用户
+        /// 根据用户 ID 查询用户
         /// </summary>
-        public async Task<User?> GetUserById(int id)    // 写Repository 层直接上 async + await 即可(Task/Task<T>看是否需要返回值，一般查询是要返回值，增删改不用)
+        /// <param name="id">用户 ID</param>
+        /// <returns>查询到的用户实体；不存在时返回 null</returns>
+        public User? GetUserById(int id)
         {
-            return await _context.User.FindAsync(id);  // FindAsync 是 EF Core 提供的根据主键查询单个实体的方法，返回值是 User类型，带? / 打个? 表示可能返回 null
+            User? user = m_context.User.Find(id);
+            return user;
         }
 
 
-        /// <summary>
-        /// 分页查询用户列表
-        /// </summary>
-        public async Task<PageResult<User>> GetUserPageList(PageQueryDto pageQueryDto)
-        {
-            var query = _context.User.AsQueryable();   // AsQueryable() 是 EF Core 提供的把 DbSet<User> 转成 IQueryable<User> 的方法，方便后续拼接查询条件
 
-            int total = await query.CountAsync();
+        /// <summary>
+        /// 分页查询用户实体列表
+        /// </summary>
+        /// <param name="pageQueryDto">分页查询条件PageQueryDto</param>
+        /// <returns>包含分页信息和用户实体列表的结果</returns>
+        public PageResult<User> GetUserPageList(PageQueryDto pageQueryDto)
+        {
+            var query = m_context.User.AsQueryable();
+
+            int total = query.Count();
             int page = pageQueryDto.Page > 0 ? pageQueryDto.Page : 1;
             int pageSize = pageQueryDto.PageSize > 0 ? pageQueryDto.PageSize : 10;
-
-            var data = await query
+            var data = query
                 .OrderBy(u => u.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
-            return new PageResult<User>
-            {
-                Total = total,
-                Page = page,
-                PageSize = pageSize,
-                Data = data
-            };
+            // new 出返回类对象，然后把上面的值赋值给返回类对象中返回给service层
+            PageResult<User> pageResult = new PageResult<User>();
+            pageResult.Total = total;
+            pageResult.Page = page;
+            pageResult.PageSize = pageSize;
+            pageResult.Data = data;
+
+            return pageResult;
         }
+
+
+
+        /// <summary>
+        /// 动态多条件分页查询用户（按账号/名称/状态/角色查询）
+        /// </summary>
+        /// <param name="queryDto">用户筛选及分页条件</param>
+        /// <returns>包含分页信息和符合条件的用户实体列表</returns>
+        public PageResult<User> GetUserPageQueryList(UserQueryDto queryDto)
+        {
+            var query = m_context.User.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(queryDto.Keyword))
+            {
+                var keyword = queryDto.Keyword.Trim();
+                var hasId = int.TryParse(keyword, out var id);
+                query = hasId
+                    ? query.Where(user => user.Id == id)
+                    : query.Where(user => user.Account == keyword || user.Name == keyword);
+            }
+
+            // 多条件查询逻辑
+            if (!string.IsNullOrWhiteSpace(queryDto.Account))
+            {
+                var account = queryDto.Account.Trim();
+                query = query.Where(user => user.Account == account);
+            }
+            if (!string.IsNullOrWhiteSpace(queryDto.Name))
+            {
+                var name = queryDto.Name.Trim();
+                query = query.Where(user => user.Name == name);
+            }
+            if (queryDto.Status.HasValue)
+            {
+                var status = queryDto.Status.Value;
+                query = query.Where(user => user.Status == status);
+            }
+            if (!string.IsNullOrWhiteSpace(queryDto.Role))
+            {
+                var role = queryDto.Role.Trim();
+                query = query.Where(user => user.Role == role);
+            }
+
+            var total = query.Count();
+            var page = Math.Max(queryDto.Page, 1);
+            var pageSize = Math.Clamp(queryDto.PageSize, 1, 100);
+            var userQueryData = query
+                .OrderBy(user => user.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            // new 出返回类对象，然后把上面的值赋值给返回类对象中返回给service层
+            PageResult<User> userPageResultList = new PageResult<User>();
+            userPageResultList.Total = total;
+            userPageResultList.Page = page;
+            userPageResultList.PageSize = pageSize;
+            userPageResultList.Data = userQueryData;
+
+            return userPageResultList;
+        }
+
 
 
         /// <summary>
         /// 新增用户
         /// </summary>
-        public async Task AddUser(User user)
+        /// <param name="user">待新增的用户实体</param>
+        public void AddUser(User user)
         {
-            await _context.User.AddAsync(user);
-            await _context.SaveChangesAsync();      // 提交事务
+            m_context.User.Add(user);
+            m_context.SaveChanges();
         }
+
 
 
         /// <summary>
         /// 修改用户
         /// </summary>
-        public async Task<bool> UpdateUser(User user)   // bool 返回值表示是否修改成功，true 表示修改成功，false 表示用户不存在（需要判断的都带bool）
+        /// <param name="user">包含待更新信息的用户实体</param>
+        /// <returns>数据库受影响行数大于 0 时返回 true，否则返回 false</returns>
+        public bool UpdateUser(User user)
         {
-            var existingUser = await _context.User.FindAsync(user.Id); // 先查用户信息出来
+            User? existingUser = m_context.User.Find(user.Id);   // 允许可能为 null ，并加防空判断  【涉及到可能为空的情况，带?的，基本都要加一个防空判断的防御性编程】
+            if (existingUser is null)
+            {
+                return false;                                   // 不存在的话就返回false，由我的service抛出对应的业务异常，Controller再转换为对应的code、msg
+            }
 
-            existingUser.Name = user.Name;                          // 修改用户默认是修改基础信息，账号、密码、创建时间不修改（因此没有手动赋值密码）
+            // 把查询出来原本的User，修改对应字段
+            existingUser.Name = user.Name;
+            existingUser.Account = user.Account;
             existingUser.Role = user.Role;
             existingUser.Status = user.Status;
 
-            var rowsAffected = await _context.SaveChangesAsync();   // 提交事务，返回受影响的行数
-            return rowsAffected > 0;                                // 如果受影响的行数大于 0，说明修改成功，返回 true，否则返回 false
+            // 原本是void 的，脚本都换成bool类型，要来验证的
+            var rowsAffected = m_context.SaveChanges();
+            return rowsAffected > 0;
         }
+
+
+
+        /// <summary>
+        /// 修改密码
+        /// </summary>
+        /// <param name="userId">用户 ID（入参必须要有id，否则不知道操作哪个）</param>
+        /// <param name="newPassword">新密码密文</param>
+        /// <returns>只需要返回是否更新成功即可，所以是bool类型返回值</returns>
+        public bool UpdatePassword(int userId, string newPassword)
+        {
+            User? user = m_context.User.Find(userId);
+            if (user is null)
+            {
+                return false;
+            }
+
+            // 修改密码
+            user.Password = newPassword;
+
+            var rowsAffected = m_context.SaveChanges();
+            return rowsAffected > 0;
+        }
+
 
 
         /// <summary>
         /// 删除用户（根据ID）
         /// </summary>
-        public async Task DeleteUser(int id)
+        /// <param name="id">待删除用户的 ID</param>
+        public bool DeleteUser(int id)
         {
-            var deleteUser = await _context.User.FindAsync(id);
-            _context.User.Remove(deleteUser);               
-            await _context.SaveChangesAsync();          // 提交事务
+            User? deleteUser = m_context.User.Find(id);
+            if (deleteUser is null)
+            {
+                return false;
+            }
+
+            m_context.User.Remove(deleteUser);
+
+            var rowsAffected = m_context.SaveChanges();
+            return rowsAffected > 0;
         }
 
+        
 
         /// <summary>
-        /// 启用禁用账号
+        /// 启用禁用账号状态（根据用户 ID） 
         /// </summary>
-        public async Task EnableOrDisableAccountStatus(int id)
-        { 
-            var manageAccount = await _context.User.FindAsync(id);      // 根据ID查询单个用户，所以用 FindAsync() 方法即可
-            manageAccount.Status = manageAccount.Status == AccountStatus.Enabled ? AccountStatus.Disabled : AccountStatus.Enabled;    // 1 为启用，0 为禁用
-            await _context.SaveChangesAsync();                           // 提交事务
+        /// <param name="id">用户 ID</param>
+        public bool EnableOrDisableAccountStatus(int id)
+        {
+            User? manageAccount = m_context.User.Find(id);   // 按主键查询出整个User，再通过manageAccount.Status提取出status来修改即可
+            if (manageAccount is null)                       // 防御性编程
+            {
+                return false;
+            }
+
+            manageAccount.Status = manageAccount.Status == AccountStatus.Enabled ? AccountStatus.Disabled : AccountStatus.Enabled;
+
+            // 原本是void 的，脚本都换成bool类型，要来验证的
+            var rowsAffected = m_context.SaveChanges();
+            return rowsAffected > 0;
         }
 
     }

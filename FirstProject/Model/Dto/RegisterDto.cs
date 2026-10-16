@@ -3,7 +3,7 @@
 namespace FirstProject.Model.Dto
 {
     /// <summary>
-    /// 注册入参
+    /// 注册入参Dto
     /// </summary>
     public class RegisterDto
     {
@@ -12,19 +12,18 @@ namespace FirstProject.Model.Dto
         /// </summary>
         [Required]
         public required string Name { get; set; }
-        //DTO 优先 required + [Required]；实体类不建议加 required 属性,影响EF core ,[Required]根据数据库的字段是否非空而加
-        //[Required]这是运行时检查，[Required] 相当于 Java 里的 @NotNull，它配合 [ApiController] 生效，如果前端传的 JSON 缺少这个字段，直接返回 400 错误
 
         /// <summary>
-        /// 账号
+        /// 账号（附加“长度必须5-20位，且只能含英文”的入参校验）【注：这属于入参格式校验(长度/格式/只能保护英文...)，这些不归Service层做，Service层做业务逻辑校验(是否为空/权限够不...)】
         /// </summary>
-        [Required(ErrorMessage = "账号不能为空")]
+        [Required]
+        [RegularExpression(@"^[A-Za-z]{5,20}$",ErrorMessage = "账号长度必须为5到20位，且只能包含英文字母")]
         public required string Account { get; set; }
 
         /// <summary>
         /// 密码
         /// </summary>
-        [Required(ErrorMessage = "密码不能为空")]
+        [Required]
         public required string Password { get; set; }
     }
 }

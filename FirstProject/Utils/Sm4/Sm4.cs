@@ -9,6 +9,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 
 namespace FirstProject.Utils;
 
+// 注：前后端都要做SM4加密，前端加密用于网络传输（加密后传给后端），后端加密存储/解密/校验
 public sealed class Sm4
 {
         private const int BlockSize = 16;
@@ -36,7 +37,7 @@ public sealed class Sm4
             }
         }
 
-
+    
         // 加密：使用 SM4-CBC 和 PKCS7 填充加密明文，结果为 Base64 编码的随机 IV 与密文（注：每次加密都会生成新的 IV，因此同一明文的密文通常不同）
         public string Encrypt(string plaintext)
         {
@@ -57,7 +58,7 @@ public sealed class Sm4
 
 
         // 解密：从密文中提取 IV 并使用 SM4-CBC 解密。
-        private string Decrypt(string encryptedText)
+        public string Decrypt(string encryptedText)
         {
             var input = Convert.FromBase64String(encryptedText);
             if (input.Length < BlockSize * 2 || (input.Length - BlockSize) % BlockSize != 0)

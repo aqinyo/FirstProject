@@ -1,5 +1,8 @@
 ﻿namespace FirstProject.Model.Dto
 {
+    /// <summary>
+    /// 分页查询入参Dto
+    /// </summary>
     public class PageQueryDto
     {
         /// <summary>
