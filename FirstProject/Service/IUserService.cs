@@ -98,5 +98,6 @@ namespace FirstProject.Service
         /// <param name="reason">禁用原因</param>
         void EnableOrDisableAccountStatus(int id, string? operatorIdClaim, string? operatorName, string? reason);
 
+
     }
 }

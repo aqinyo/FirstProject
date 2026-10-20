@@ -16,7 +16,7 @@ namespace FirstProject.Model.Entity
         public int Id { get; set; }
 
         /// <summary>
-        /// 名称（可以通过这个来指定映射表的字段名[Column("target_user_id")]）
+        /// 名称
         /// </summary>
         public string Name { get; set; }
 
@@ -43,7 +43,13 @@ namespace FirstProject.Model.Entity
         /// <summary>
         /// 创建时间
         /// </summary>
-        public DateTime CreateTime { get; set; }             
+        public DateTime CreateTime { get; set; }
+
+        /// <summary>
+        /// 删除时间（软删）（通过这个来指定映射表的字段名[Column("delete_time")]，上面没有加是因为数据库的字段名称就是这里的属性名）【默认设置的这个时间意为“未删除”，而不是null，因为null在Mysql是不相等，会失去唯一性】
+        /// </summary>
+        [Column("delete_time")]
+        public DateTime DeleteTime { get; set; } = new DateTime(2026, 10, 1); 
 
     }
 }

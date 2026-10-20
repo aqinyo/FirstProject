@@ -45,9 +45,13 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)                       // 捕获的异常是我自定义的异常类/预期的异常都在这BusinessException内，然后一般的/不可预期/未在BusinessException里面的异常由全局异常处理器统一捕获兜底处理
             {
-                //写日志，记录异常
+                // 调用我的Mapper把“自定义的业务码”映射为“标准的HTTP状态码”，给下面return给前端
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
+
+                // 同时这里调用Result结果集的(含code和msg)失败方法，返回我自定义异常类里面的业务码和msg异常信息
                 return Result<UserVo>.Fail((int)bex.ErrorCode, bex.Message);
+
+                //补充：Controller 捕获的 BusinessException 自定义异常不写日志，记录系统级的 BUG交给全局异常处理器去写（不搞两个catch）
             }
         }
 
@@ -74,7 +78,6 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)
             {
-                //写日志，记录异常
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
                 return Result<PageResult<UserVo>>.Fail((int)bex.ErrorCode, bex.Message);
             }
@@ -104,8 +107,6 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex) // 捕获的异常是我自定义的异常类。预期的异常都在这BusinessException内，然后一般的/不可预期/未在BusinessException里面的异常由全局异常处理器统一捕获兜底处理
             {
-                //写日志，记录异常(不能和service层那样子抛出异常了)
-
                 // 调用我的Mapper把“自定义的业务码”映射为“标准的HTTP状态码”，给下面return给前端
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
 
@@ -132,7 +133,6 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)
             {
-                //写日志，记录异常
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
                 return Result<string>.Fail((int)bex.ErrorCode, bex.Message);
             }
@@ -156,9 +156,10 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)
             {
-                //写日志，记录异常
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
                 return Result<string>.Fail((int)bex.ErrorCode, bex.Message);
+
+                //补充：Controller 捕获的 BusinessException 自定义异常不写日志，记录系统级的 BUG交给全局异常处理器去写（不搞两个catch）
             }
         }
 
@@ -182,7 +183,6 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)
             {
-                // 写日志，记录异常
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
                 return Result<string>.Fail((int)bex.ErrorCode, bex.Message);
             }
@@ -204,7 +204,6 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)
             {
-                // 写日志，记录异常
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
                 return Result<string>.Fail((int)bex.ErrorCode, bex.Message);
             }
@@ -228,7 +227,6 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)
             {
-                // 写日志，记录异常
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
                 return Result<string>.Fail((int)bex.ErrorCode, bex.Message);
             }
@@ -257,7 +255,6 @@ namespace FirstProject.Controller
             }
             catch (BusinessException bex)
             {
-                // 写日志，记录异常
                 Response.StatusCode = BusinessErrorCodeHttpCodeMapper.Mapper(bex.ErrorCode);
                 return Result<string>.Fail((int)bex.ErrorCode, bex.Message);
             }

@@ -57,7 +57,7 @@ namespace FirstProject.Service
                 bool accountIsExist = m_userRepository.AccountExists(registerDto.Account);        // Any() 方法来判断记录是否存在（它会返回一个布尔值，表示是否存在满足条件的记录）
                 if (accountIsExist)                                                              // if()里面的值刚好也是布尔值，进行判断的
                 {
-                    // 抛出自定义异常 BusinessException 由全局异常处理器来捕获处理  （参数是：业务码、异常提示信息）    （HTTP状态码通过“全局异常处理器”去转换业务码为 HTTP 状态码）
+                    // 抛出自定义异常 BusinessException 由Controller来捕获处理  （参数是：业务码、异常提示信息）    （HTTP状态码通过“全局异常处理器”去转换业务码为 HTTP 状态码）
                     throw new BusinessException(BusinessErrorCode.AccountAlreadyExists, ConstantMessage.AccountAlreadyExists);
                 }
 
@@ -72,11 +72,10 @@ namespace FirstProject.Service
                 userRegister.CreateTime = DateTime.Now;
 
                 m_userRepository.Register(userRegister);
-            }
-            catch (Exception)
+            } 
+            catch (Exception)   //Service 的 catch 不捕获自定义异常，只捕获系统异常（然后原封不动的抛给“全局异常处理器”去捕获处理即可，Controller 只 catch Service层抛出的自定义的异常，不搞两个catch）
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
-                throw;
+                throw; 
             }
         }
 
@@ -154,9 +153,9 @@ namespace FirstProject.Service
                 return loginVo;
 
             }
-            catch (Exception)
+
+            catch (Exception)//Service 的 catch 不捕获自定义异常，只捕获系统异常（然后原封不动的抛给“全局异常处理器”去捕获处理即可，Controller 只 catch Service层抛出的自定义的异常，不搞两个catch）
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -191,10 +190,11 @@ namespace FirstProject.Service
                     // Redis 读取失败时继续回源数据库。
                 }
 
+                // 查询数据库，并做非空判断
                 User? user = m_userRepository.GetUserById(userId);
                 if (user is null || user.Status != AccountStatus.Enabled)
                 {
-                    return null;
+                    throw new BusinessException(BusinessErrorCode.UserNotFound, ConstantMessage.UserNotFound);//TODO：要改一下这里，是两个条件的判断
                 }
 
                 UserVo userVo = user.Adapt<UserVo>();
@@ -216,9 +216,9 @@ namespace FirstProject.Service
 
                 return userVo;
             }
+
             catch (Exception)
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -265,7 +265,8 @@ namespace FirstProject.Service
                 // DL层可能返回空的实体类，要做非空判断
                 if (user == null)
                 {
-                    return null;
+                    // 出现异常就抛出 BusinessException 的自定义异常给 Controller 统一捕获处理（这个是BusinessException在Service层的应用了）
+                    throw new BusinessException(BusinessErrorCode.UserNotFound, ConstantMessage.UserNotFound);
                 }
 
                 // new 出来手动赋值
@@ -280,9 +281,9 @@ namespace FirstProject.Service
                 return userVo;
 
             }
-            catch (Exception)
+
+            catch (Exception)   //Service 的 catch 不捕获自定义异常，只捕获系统异常（然后原封不动的抛给“全局异常处理器”去捕获处理即可，Controller 只 catch Service层抛出的自定义的异常，不搞两个catch）
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
 
@@ -299,23 +300,23 @@ namespace FirstProject.Service
         {
             try
             {
-                // 1. 调用DL层的数据库操作查询获取数据
+                // 用 DL层 的数据库操作查询获取数据
                 PageResult<User> userPage = m_userRepository.GetUserPageList(pageQueryDto);
 
-                // 2. 将 上面的分页结果集类 手动赋值为 Vo 类
+                // 将 上面的分页结果集类 手动赋值为 Vo 类
                 PageResult<UserVo> userVoPage = new PageResult<UserVo>();
                 userVoPage.Total = userPage.Total;
                 userVoPage.Page = userPage.Page;
                 userVoPage.PageSize = userPage.PageSize;
                 userVoPage.Data = userPage.Data?.Adapt<List<UserVo>>();
 
-                // 3. 返回新的 PageResult<UserVo> 给Controller层
+                // 返回新的 PageResult<UserVo> 给 Controller层
                 return userVoPage;
 
             }
+
             catch (Exception)
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -343,9 +344,9 @@ namespace FirstProject.Service
                 return userVoPage;
 
             }
+
             catch (Exception)
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -367,10 +368,12 @@ namespace FirstProject.Service
                 // 密码赋值前先判断是否 Null
                 if (!string.IsNullOrEmpty(addUserDto.Password))
                 {
-                    user.Password = addUserDto.Password;            // 前端已用 SM4 加密传输：直接存储，不用再调 sm4 的 Encrypt 加密方法
+                    user.Password = addUserDto.Password;   // 前端已用 SM4 加密传输：直接存储，不用再调 sm4 的 Encrypt 加密方法
                 }
-                if (user.Password != addUserDto.ConfirmPassword)    // 这里是两个密文对比（只需要对比即可，不需要赋值，因为我的数据库表没有这个字段）
+                // 判断两个密文是否相等（只需要比对即可，不需要赋值，因为我的数据库表没有这个字段）
+                if (user.Password != addUserDto.ConfirmPassword)  
                 {
+                    // 出现异常就抛出 BusinessException 的自定义异常给 Controller 统一捕获处理（这个是BusinessException在Service层的应用了）
                     throw new BusinessException(BusinessErrorCode.NewPasswordMismatch, ConstantMessage.NewPasswordMismatch);
                 }
                 user.Role = addUserDto.Role;
@@ -382,9 +385,9 @@ namespace FirstProject.Service
                 m_userRepository.AddUser(user);
 
             }
+
             catch (Exception)
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -412,6 +415,7 @@ namespace FirstProject.Service
                 bool updateUser = m_userRepository.UpdateUser(user);    // 返回的是bool类型，并在下面加防御性编程：判断一下（true就不会进去）
                 if (!updateUser)
                 {
+                    // 出现异常就抛出 BusinessException 的自定义异常给 Controller 统一捕获处理（这个是BusinessException在Service层的应用了）
                     throw new BusinessException(BusinessErrorCode.UserNotFound, ConstantMessage.UserNotFound);//抛用户不存在的业务码和异常信息
                 }
 
@@ -420,7 +424,6 @@ namespace FirstProject.Service
             }
             catch (Exception)
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -446,6 +449,7 @@ namespace FirstProject.Service
                 User? user = m_userRepository.GetUserById(userId);
                 if (user is null)
                 {
+                    // 出现异常就抛出 BusinessException 的自定义异常给 Controller 统一捕获处理（这个是BusinessException在Service层的应用了）
                     throw new BusinessException(BusinessErrorCode.UserNotFound, ConstantMessage.UserNotFound);
                 }
 
@@ -483,7 +487,6 @@ namespace FirstProject.Service
             }
             catch (Exception)
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -506,13 +509,13 @@ namespace FirstProject.Service
                 string resetPassword = m_sm4.Encrypt("123456");
                 if (!m_userRepository.UpdatePassword(userId, resetPassword))
                 {
+                    // 出现异常就抛出 BusinessException 的自定义异常给 Controller 统一捕获处理（这个是BusinessException在Service层的应用了）
                     throw new BusinessException(BusinessErrorCode.UserNotFound, ConstantMessage.UserNotFound);
                 }
 
             }
             catch (Exception)
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -531,15 +534,16 @@ namespace FirstProject.Service
                 // 查询用户是否为空
                 if (!user)
                 {
+                    // 出现异常就抛出 BusinessException 的自定义异常给 Controller 统一捕获处理（这个是BusinessException在Service层的应用了）
                     throw new BusinessException(BusinessErrorCode.UserNotFound,ConstantMessage.UserNotFound);
                 }
 
                 // 数据库删除成功后清除对应的用户资料缓存
                 RemoveUserProfileCache(id);
             }
-            catch (Exception)
+
+            catch (Exception) //Service 的 catch 不捕获自定义异常，只捕获系统异常（然后原封不动的抛给“全局异常处理器”去捕获处理即可，Controller 只 catch Service层抛出的自定义的异常，不搞两个catch）
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }
@@ -588,9 +592,8 @@ namespace FirstProject.Service
                 RemoveUserProfileCache(id);
 
             }
-            catch (Exception)
+            catch (Exception)//Service 的 catch 不捕获自定义异常，只捕获系统异常（然后原封不动的抛给“全局异常处理器”去捕获处理即可，Controller 只 catch Service层抛出的自定义的异常，不搞两个catch）
             {
-                // 写日志，记录异常（并抛出异常给 Controller 统一捕获处理）
                 throw;
             }
         }

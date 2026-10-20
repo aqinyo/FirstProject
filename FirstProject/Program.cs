@@ -21,6 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<UserRepository>();
 // 注册 Service    （的接口和实现类，才能在 Controller 里注入使用）
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IExceptionLogService, ExceptionLogService>();
 // 注册 Controller （类似 Java 的 @RestController ，将 控制器类 注册到依赖注入容器中，开启 控制器功能）
 builder.Services.AddControllers();
 // 注册 DbContext  （数据库上下文）
