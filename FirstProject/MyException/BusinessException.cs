@@ -12,7 +12,7 @@
         AccountAlreadyExists = 1001,
 
         /// <summary>
-        /// 账号/密码错误
+        /// 账号/密码错误（应对登录时）
         /// </summary>
         InvalidCredentials = 1002,
 
@@ -39,7 +39,18 @@
         /// <summary>
         /// 登录身份无效
         /// </summary>
-        InvalidUserIdentity = 1007
+        InvalidUserIdentity = 1007,
+
+        /// <summary>
+        /// 禁用原因不能为空
+        /// </summary>
+        StatusChangeReasonRequired = 1008,
+
+        /// <summary>
+        /// 密码错误（应对修改密码时，输入错误的旧密码）
+        /// </summary>
+        InvalidPasswords = 1009
+
     }
 
 
@@ -63,7 +74,7 @@
         /// <summary>
         /// 1003 异常提示信息
         /// </summary>
-        public const string AccountDisabled = "该账号已被禁用！禁用原因：（这时候导入要新加入的备注内容了）";
+        public const string AccountDisabled = "该账号已被禁用！";
 
         /// <summary>
         /// 1004 异常提示信息
@@ -84,6 +95,16 @@
         /// 1007 异常提示信息
         /// </summary>
         public const string InvalidUserIdentity = "登录身份无效！";
+
+        /// <summary>
+        /// 1008 异常提示信息
+        /// </summary>
+        public const string StatusChangeReasonRequired = "禁用账号时必须填写禁用原因！";
+
+        /// <summary>
+        /// 1009 异常提示信息
+        /// </summary>
+        public const string InvalidPasswords = "输入旧密码错误！";
 
     }       
      

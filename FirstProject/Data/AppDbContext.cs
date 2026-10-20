@@ -27,5 +27,7 @@ namespace FirstProject.Data
         /// </summary>
         public DbSet<User> User { get; set; }   
 
+        public DbSet<StatusLog> StatusLog { get; set; }
+
     }
 }

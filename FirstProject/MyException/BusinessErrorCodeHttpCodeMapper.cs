@@ -1,7 +1,4 @@
-﻿using FirstProject.MyException;
-using Microsoft.AspNetCore.Http;
-
-namespace FirstProject.MyException
+﻿namespace FirstProject.MyException
 
 {
     /// <summary>
@@ -40,6 +37,12 @@ namespace FirstProject.MyException
 
                 // 自定义业务码InvalidUserIdentity （1007）   —映射为→   HTTP 401
                 BusinessErrorCode.InvalidUserIdentity => StatusCodes.Status401Unauthorized,
+
+                // 自定义业务码StatusChangeReasonRequired（1008） —映射为→ HTTP 400
+                BusinessErrorCode.StatusChangeReasonRequired => StatusCodes.Status400BadRequest,
+
+                // 自定义业务码StatusChangeReasonRequired（1009） —映射为→ HTTP 401
+                BusinessErrorCode.InvalidPasswords => StatusCodes.Status401Unauthorized,
 
 
                 // 其余的/未被定义的异常 统一映射为→ HTTP 500

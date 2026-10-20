@@ -23,8 +23,5 @@
 		<!-- Swagger接口文档，生产环境要关闭 Swagger -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Interceptor\" />
-	</ItemGroup>
 
 </Project>

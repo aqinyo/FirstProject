@@ -93,7 +93,10 @@ namespace FirstProject.Service
         /// 启用禁用账号
         /// </summary>
         /// <param name="id"></param>
-        void EnableOrDisableAccountStatus(int id);
+        /// <param name="operatorIdClaim">当前操作人的用户ID</param>
+        /// <param name="operatorName">当前操作人的账号</param>
+        /// <param name="reason">禁用原因</param>
+        void EnableOrDisableAccountStatus(int id, string? operatorIdClaim, string? operatorName, string? reason);
 
     }
 }

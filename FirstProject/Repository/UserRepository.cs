@@ -249,13 +249,16 @@ namespace FirstProject.Repository
             return rowsAffected > 0;
         }
 
-        
+
 
         /// <summary>
         /// 启用禁用账号状态（根据用户 ID） 
         /// </summary>
         /// <param name="id">用户 ID</param>
-        public bool EnableOrDisableAccountStatus(int id)
+        /// <param name="operatorId">操作人ID</param>
+        /// <param name="operatorName">操作人Name</param>
+        /// <param name="reason">禁用原因</param>
+        public bool EnableOrDisableAccountStatus(int id, int operatorId, string operatorName, string reason)
         {
             User? manageAccount = m_context.User.Find(id);   // 按主键查询出整个User，再通过manageAccount.Status提取出status来修改即可
             if (manageAccount is null)                       // 防御性编程
@@ -263,7 +266,23 @@ namespace FirstProject.Repository
                 return false;
             }
 
-            manageAccount.Status = manageAccount.Status == AccountStatus.Enabled ? AccountStatus.Disabled : AccountStatus.Enabled;
+            // 判断从数据库查询出来的状态是否为“禁用”
+            AccountStatus beforeStatus = manageAccount.Status;
+            AccountStatus afterStatus = beforeStatus == AccountStatus.Enabled? AccountStatus.Disabled: AccountStatus.Enabled;   // 若beforeStatus == AccountStatus.Enabled?为真，赋第一个值，为假则第二个
+            manageAccount.Status = afterStatus;
+
+            // new 出来 + 手动赋值
+            StatusLog statusLog = new StatusLog();
+            statusLog.TargetUserId = manageAccount.Id;
+            statusLog.OperatorId = operatorId;
+            statusLog.OperatorName = operatorName;
+            statusLog.BeforeStatus = (int)beforeStatus;
+            statusLog.AfterStatus = (int)afterStatus;
+            statusLog.Reason = reason;
+            statusLog.OperatorTime = DateTime.Now;
+
+            // 插入日志表
+            m_context.StatusLog.Add(statusLog);
 
             // 原本是void 的，脚本都换成bool类型，要来验证的
             var rowsAffected = m_context.SaveChanges();

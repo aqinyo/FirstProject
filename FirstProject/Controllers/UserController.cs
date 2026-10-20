@@ -1,24 +1,22 @@
-﻿using FirstProject.Model.Dto;
-using FirstProject.Model.VO;
-using FirstProject.MyException;
+﻿using FirstProject.MyException;
 using FirstProject.Result;
 using FirstProject.Service;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;  //在 ASP.NET Core 中，Web API 控制器（[ApiController]特性）本质上就是 MVC 控制器的一种特化形式。而从 ASP.NET Core 1.0 开始，微软就将 MVC 和 Web API 合并成了统一的编程模型了
+using FirstProject.Model.Dto;
+using FirstProject.Model.VO;
 using System.Security.Claims;
-                                 //这段代码本质是ASP.NET Core MVC 框架开发的 Web API ，因为 Web API 是通过 HTTP 接口提供数据的开发方式，而你代码里面使用的 [ApiController]、[HttpGet]、[FromBody] 等也都体现了 API 控制器的用法
+using Microsoft.AspNetCore.Mvc;             // [ASP.NET] Core 中，Web API 控制器本质上就是 MVC 控制器的一种特化形式。而从 ASP.NET Core 1.0 开始，微软就将 MVC 和 Web API 合并成了统一的编程模型了
+using Microsoft.AspNetCore.Authorization;   // [ASP.NET] Core 框架已经提供 JwtBearer 中间件 + Authorize 授权体系（依赖 JwtBearer 中间件完成 token 认证），这是官方标准方案
 
 namespace FirstProject.Controller
 {
     /// <summary>
     /// 用户管理相关接口
     /// </summary>
-    [Authorize(Roles = "Admin")]                            // 只有Admin角色的用户才能访问该接口（而AuthController没加是公共接口，登录注册谁都可以用）
-    [ApiController]
+    [Authorize(Roles = "Admin")]                            // 只有Admin角色的用户才能访问该接口【JwtBearer中间件负责认证，Authorize特性负责授权】（而AuthController没加[Authorize]，属于公共接口，登录注册谁都可以用）
+    [ApiController]                                         
     [Route("api/[Controller]")]                             // 接口地址 /api/user
     public class UserController : ControllerBase            //注：冒号左右各有一个空格
     {
-
         /// <summary>
         /// 构造函数：依赖注入“上述所依赖注入的东西”进入容器 ，并负责创建并传入这些对象
         /// </summary>
@@ -40,7 +38,8 @@ namespace FirstProject.Controller
         {
             try
             {
-                UserVo userVo = m_userService.GetUserById(id);  // 因为返回值是UserVo，所以这里建议用强类型转换，不要用弱类型var（注：类名是驼峰命名，局部变量名是首个字母小写后面再驼峰命名）
+                UserVo? userVo = new UserVo();                  // 允许为null，service层做了非空判断
+                userVo = m_userService.GetUserById(id);         // 因为返回值是UserVo，所以这里建议用强类型转换，不要用弱类型var（注：类名是驼峰命名，局部变量名是首个字母小写后面再驼峰命名）
                 return Result<UserVo>.Success(userVo);
 
             }
@@ -240,14 +239,19 @@ namespace FirstProject.Controller
         /// <summary>
         /// 启用禁用账号状态
         /// </summary>
-        /// <param name="id">传用户id参数即可</param>
+        /// <param name="id">传用户id参数即可（由前端提取传回）</param>
+        /// <param name="statusLogDto">禁用原因（启用时可为空）</param>
         /// <returns></returns>
         [HttpPost("EnableOrDisableAccountStatus")]
-        public Result<string> EnableOrDisableAccountStatus(int id)
+        public Result<string> EnableOrDisableAccountStatus(int id, [FromBody] StatusLogDto statusLogDto)
         {
             try
             {
-                m_userService.EnableOrDisableAccountStatus(id);
+                string? operatorId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                string? operatorName = User.FindFirst(ClaimTypes.Name)?.Value;
+
+                m_userService.EnableOrDisableAccountStatus(id,operatorId,operatorName,statusLogDto.Reason);
+
                 return Result<string>.Success("操作成功!");
 
             }

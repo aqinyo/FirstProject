@@ -23,7 +23,14 @@ namespace FirstProject.Model.Dto
         /// <summary>
         /// 密码
         /// </summary>
-        public string? Password { get; set; }  // 新增时必填，编辑时如果不修改密码可以留空（string? 表示可以为空）  
+        [Required]
+        public required string Password { get; set; }  // 新增时必填  
+
+        /// <summary>
+        /// 确认密码（前端传入的 SM4 密文，由 Service 解密后比较）
+        /// </summary>
+        [Required]
+        public required string ConfirmPassword { get; set; }
 
         /// <summary>
         /// 角色

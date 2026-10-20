@@ -65,9 +65,8 @@ namespace FirstProject.Service
                 User userRegister = new User();
                 // 手动赋值
                 userRegister.Name = registerDto.Name;                       // 把入参的 registerDto 中的参数提出来赋值给自己 new 的实体类
-                userRegister.Account = registerDto.Account;
-                // 前端已用 SM4 加密传输：直接存储前端传来的密文，不要再 Encrypt（否则会双重加密导致登录失败）
-                userRegister.Password = registerDto.Password;
+                userRegister.Account = registerDto.Account;   
+                userRegister.Password = registerDto.Password;               // 前端已用 SM4 加密传输：直接存储前端传来的密文，不要再 Encrypt（否则会双重加密导致登录失败）
                 userRegister.Role = "User";                                 // 默认注册的用户角色为普通用户
                 userRegister.Status = AccountStatus.Enabled;                // 默认注册的用户状态为启用
                 userRegister.CreateTime = DateTime.Now;
@@ -261,8 +260,9 @@ namespace FirstProject.Service
             try
             {
                 // try 里面执行接口实现类方法的业务逻辑
-                User? user = m_userRepository.GetUserById(id);  // DL层可能返回空的实体类
-
+                User? user = m_userRepository.GetUserById(id);  
+                
+                // DL层可能返回空的实体类，要做非空判断
                 if (user == null)
                 {
                     return null;
@@ -364,14 +364,19 @@ namespace FirstProject.Service
                 User user = new User();
                 user.Name = addUserDto.Name;
                 user.Account = addUserDto.Account;
+                // 密码赋值前先判断是否 Null
+                if (!string.IsNullOrEmpty(addUserDto.Password))
+                {
+                    user.Password = addUserDto.Password;            // 前端已用 SM4 加密传输：直接存储，不用再调 sm4 的 Encrypt 加密方法
+                }
+                if (user.Password != addUserDto.ConfirmPassword)    // 这里是两个密文对比（只需要对比即可，不需要赋值，因为我的数据库表没有这个字段）
+                {
+                    throw new BusinessException(BusinessErrorCode.NewPasswordMismatch, ConstantMessage.NewPasswordMismatch);
+                }
                 user.Role = addUserDto.Role;
                 user.Status = addUserDto.Status;
 
-                // 密码赋值前先判断是否Null
-                if (!string.IsNullOrEmpty(addUserDto.Password))
-                {
-                    user.Password = addUserDto.Password;   //前端已用 SM4 加密传输：直接存储，不用再调 sm4 的 Encrypt 加密方法
-                }
+
                 user.CreateTime = DateTime.Now;
 
                 m_userRepository.AddUser(user);
@@ -425,14 +430,14 @@ namespace FirstProject.Service
         /// <summary>
         /// 修改密码
         /// </summary>
-        /// <param name="userIdClaim">JWT 中的用户 ID claim（字符串）</param>
+        /// <param name="jwtUserId">JWT 中的用户 ID （字符串）</param>
         /// <param name="changePasswordDto"></param>
-        public void ChangePassword(string? userIdClaim, ChangePasswordDto changePasswordDto)
+        public void ChangePassword(string? jwtUserId, ChangePasswordDto changePasswordDto)
         {
             try
             {
-                // 校验id是否有效（并尝试把入参的string? userIdClaim 转换为DL层修改密码的入参int userId）
-                if (!int.TryParse(userIdClaim, out int userId))
+                // 校验id是否有效（并尝试把入参的string? jwtUserId() 转换为 DL层 修改密码的入参int userId）
+                if (!int.TryParse(jwtUserId, out int userId))
                 {
                     throw new BusinessException(BusinessErrorCode.InvalidUserIdentity, ConstantMessage.InvalidUserIdentity);
                 }
@@ -448,10 +453,10 @@ namespace FirstProject.Service
                 string oldPassword = m_sm4.Decrypt(changePasswordDto.OldPassword);
                 if (!m_sm4.Verify(oldPassword, user.Password))
                 {
-                    throw new BusinessException(BusinessErrorCode.InvalidCredentials, ConstantMessage.InvalidCredentials);
+                    throw new BusinessException(BusinessErrorCode.InvalidPasswords, ConstantMessage.InvalidPasswords);
                 }
 
-                // 提取入参的Dto中的两次密码，并判断是否相等
+                // 提取入参的Dto中的两次密码，解密后再判断是否相等（新增用户时，也有同样的逻辑，即确认密码的业务逻辑判断）
                 string newPassword = m_sm4.Decrypt(changePasswordDto.NewPassword);
                 string confirmPassword = m_sm4.Decrypt(changePasswordDto.ConfirmPassword);
                 if (newPassword != confirmPassword)
@@ -522,7 +527,13 @@ namespace FirstProject.Service
         {
             try
             {
-                m_userRepository.DeleteUser(id);
+                bool user =  m_userRepository.DeleteUser(id);
+                // 查询用户是否为空
+                if (!user)
+                {
+                    throw new BusinessException(BusinessErrorCode.UserNotFound,ConstantMessage.UserNotFound);
+                }
+
                 // 数据库删除成功后清除对应的用户资料缓存
                 RemoveUserProfileCache(id);
             }
@@ -539,13 +550,43 @@ namespace FirstProject.Service
         /// 启用禁用账号状态（根据用户 ID） 
         /// </summary>
         /// <param name="id"></param>
-        public void EnableOrDisableAccountStatus(int id)
+        /// <param name="jwtOperatorId">JWT 中的操作人 ID </param>
+        /// <param name="operatorName">JWT 中的操作人Name</param>
+        /// <param name="reason">禁用原因（启用不需要填）</param>
+        public void EnableOrDisableAccountStatus(int id, string? jwtOperatorId, string? operatorName, string? reason)
         {
             try
             {
-                m_userRepository.EnableOrDisableAccountStatus(id);
+                // 判断登录身份是否有效（并尝试把入参的string? jwtOperatorId() 转换为 DL层 修改密码的入参int userId）
+                if (!int.TryParse(jwtOperatorId, out int operatorId) || string.IsNullOrWhiteSpace(operatorName))
+                {
+                    throw new BusinessException(BusinessErrorCode.InvalidUserIdentity, ConstantMessage.InvalidUserIdentity);
+                }
+
+                // 判断查询用户是否为空
+                User? user = m_userRepository.GetUserById(id);
+                if (user is null)
+                {
+                    throw new BusinessException(BusinessErrorCode.UserNotFound, ConstantMessage.UserNotFound);
+                }
+
+                // 判断禁用原因是否为空
+                string normalizedReason = reason?.Trim() ?? string.Empty;
+                if (user.Status == AccountStatus.Enabled && string.IsNullOrWhiteSpace(normalizedReason))
+                {
+                    throw new BusinessException(BusinessErrorCode.StatusChangeReasonRequired, ConstantMessage.StatusChangeReasonRequired);
+                }
+
+                // 若不为空，就调用DL层方法修改用户状态
+                bool updated = m_userRepository.EnableOrDisableAccountStatus(id,operatorId,operatorName,normalizedReason);
+                if (!updated)
+                {
+                    throw new BusinessException(BusinessErrorCode.UserNotFound, ConstantMessage.UserNotFound);
+                }
+
                 // 账号状态已改变，清除缓存（根据ID）
                 RemoveUserProfileCache(id);
+
             }
             catch (Exception)
             {

@@ -10,10 +10,10 @@ namespace FirstProject.Model.Dto
     {
 
         /// <summary>
-        /// 修改原因（启用禁用原因）(必填，所以加了非空校验)
+        /// 修改原因（禁用时必填，启用时可为空）
         /// </summary>
-        [Required]
-        public required string Reason { get; set; }
+        [MaxLength(200, ErrorMessage = "禁用原因不能超过200个字符")]
+        public string? Reason { get; set; }
 
     }
 }

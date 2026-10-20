@@ -15,9 +15,10 @@ namespace FirstProject.Model.Dto
         public required string Account { get; set; }
 
         /// <summary>
-        /// 密码
+        /// 密码（前端传入的 SM4 密文）
         /// </summary>
         [Required]
         public required string Password { get; set; }
+
     }
 }
